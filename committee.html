@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Committee — Recreational Center Bookings</title>
 <style>
   #vc-root {
     --ink: #201d18; --paper: #FAF6EE; --paper-raised: #FFFFFF; --line: #E4DBC8;
@@ -7,6 +13,7 @@
     background: var(--paper); color: var(--ink); font-family: var(--font-body);
     min-height: 100vh; padding: 28px 20px 60px; box-sizing: border-box;
   }
+  html, body { margin: 0; padding: 0; }
   #vc-root * { box-sizing: border-box; }
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -20,31 +27,38 @@
 
   #vc-root .vc-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
   #vc-root .vc-pin-box { max-width: 300px; margin: 40px auto; text-align: center; }
-  #vc-root .vc-pin-box input { text-align: center; letter-spacing: 6px; font-size: 20px; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--font-body); background: var(--paper); color: var(--ink); }
+  #vc-root .vc-pin-box input { text-align: center; letter-spacing: 6px; font-size: 20px; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px; font-family: var(--font-body); background: var(--paper); color: var(--ink); }
+  #vc-root #vc-name-input { font-size: 16px !important; letter-spacing: normal !important; }
   #vc-root label { display: block; font-size: 12px; font-weight: 600; color: var(--moss-deep); margin-bottom: 6px; }
-  #vc-root .vc-submit { margin-top: 14px; width: 100%; background: var(--moss); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: var(--font-body); }
+  #vc-root .vc-submit { margin-top: 14px; width: 100%; background: var(--moss); color: #fff; border: none; padding: 14px; border-radius: 8px; font-weight: 700; font-size: 15px; cursor: pointer; font-family: var(--font-body); }
   #vc-root .vc-submit:hover { background: var(--moss-deep); }
   #vc-root .vc-msg { font-size: 13px; margin-top: 10px; padding: 10px 12px; border-radius: 8px; }
   #vc-root .vc-msg.err { background: #F5E4DE; color: var(--brick); }
 
-  #vc-root .vc-booking-row { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  #vc-root .vc-booking-row { display: flex; gap: 14px; padding: 16px 0; border-bottom: 1px solid var(--line); align-items: flex-start; flex-wrap: wrap; }
   #vc-root .vc-booking-row:last-child { border-bottom: none; }
   #vc-root .vc-b-date { font-family: var(--font-display); font-size: 15px; min-width: 78px; font-weight: 600; }
-  #vc-root .vc-b-main { flex: 1; }
+  #vc-root .vc-b-main { flex: 1; min-width: 200px; }
   #vc-root .vc-b-name { font-weight: 700; font-size: 14px; }
   #vc-root .vc-b-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   #vc-root .vc-status-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; display: inline-block; margin-top: 6px; }
   #vc-root .vc-status-pill.pending { background: #FBEED4; color: #8A6113; }
   #vc-root .vc-status-pill.approved { background: #F5E1DC; color: var(--brick); }
   #vc-root .vc-status-pill.rejected { background: #EEE; color: #888; }
-  #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; }
-  #vc-root .vc-b-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 6px 10px; font-size: 11px; cursor: pointer; font-weight: 600; font-family: var(--font-body); }
+  #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
+  #vc-root .vc-b-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 9px 12px; font-size: 12px; cursor: pointer; font-weight: 600; font-family: var(--font-body); min-height: 36px; }
   #vc-root .vc-b-actions button.approve:hover { border-color: var(--brick); color: var(--brick); }
   #vc-root .vc-proof-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--line); }
   #vc-root .vc-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
   #vc-root .vc-modal-overlay { position: fixed; inset: 0; background: rgba(32,29,24,.75); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
   #vc-root .vc-modal-overlay img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+  @media (max-width: 500px) {
+    #vc-root .vc-header { flex-direction: column; align-items: flex-start; }
+    #vc-root .vc-preview-toggle { width: 100%; padding: 10px 16px; }
+  }
 </style>
+</head>
+<body>
 
 <div id="vc-root">
   <div class="vc-wrap">
@@ -242,3 +256,5 @@
   renderBody();
 })();
 </script>
+</body>
+</html>

@@ -1,3 +1,9 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lagos Homs Ilupeju Scheme — Recreational Center Booking</title>
 <style>
   #vb-root {
     --ink: #201d18; --paper: #FAF6EE; --paper-raised: #FFFFFF; --line: #E4DBC8;
@@ -7,6 +13,7 @@
     background: var(--paper); color: var(--ink); font-family: var(--font-body);
     min-height: 100vh; padding: 28px 20px 60px; box-sizing: border-box;
   }
+  html, body { margin: 0; padding: 0; }
   #vb-root * { box-sizing: border-box; }
   @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
 
@@ -20,12 +27,12 @@
 
   #vb-root .vb-cal-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
   #vb-root .vb-cal-title { font-family: var(--font-display); font-size: 19px; font-weight: 600; }
-  #vb-root .vb-nav-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; width: 32px; height: 32px; cursor: pointer; font-size: 15px; color: var(--ink); }
+  #vb-root .vb-nav-btn { background: var(--paper); border: 1px solid var(--line); border-radius: 8px; width: 40px; height: 40px; cursor: pointer; font-size: 16px; color: var(--ink); }
   #vb-root .vb-nav-btn:hover { border-color: var(--moss); }
   #vb-root .vb-dow { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; margin-bottom: 6px; }
   #vb-root .vb-dow span { text-align: center; font-size: 11px; color: var(--muted); font-weight: 600; }
   #vb-root .vb-days { display: grid; grid-template-columns: repeat(7,1fr); gap: 4px; }
-  #vb-root .vb-day { aspect-ratio: 1; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 13px; cursor: pointer; border: 1px solid transparent; background: var(--paper); position: relative; color: var(--ink); }
+  #vb-root .vb-day { aspect-ratio: 1; min-height: 38px; display: flex; align-items: center; justify-content: center; border-radius: 8px; font-size: 14px; cursor: pointer; border: 1px solid transparent; background: var(--paper); position: relative; color: var(--ink); }
   #vb-root .vb-day.empty { visibility: hidden; cursor: default; }
   #vb-root .vb-day.past { color: #C7BFA9; cursor: not-allowed; }
   #vb-root .vb-day.selected { outline: 2px solid var(--ink); outline-offset: 1px; }
@@ -40,8 +47,8 @@
   #vb-root label:first-child { margin-top: 0; }
   #vb-root .vb-caption { font-size: 11px; color: var(--muted); margin: -3px 0 6px; }
   #vb-root input[type=text], #vb-root input[type=tel], #vb-root input[type=email], #vb-root select, #vb-root textarea {
-    width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px;
-    font-family: var(--font-body); font-size: 14px; background: var(--paper); color: var(--ink);
+    width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 12px;
+    font-family: var(--font-body); font-size: 16px; background: var(--paper); color: var(--ink);
   }
   #vb-root textarea { resize: vertical; min-height: 60px; }
   #vb-root .vb-selected-date { font-family: var(--font-display); font-size: 17px; padding: 10px 14px; background: var(--paper); border: 1px dashed var(--line); border-radius: 8px; color: var(--moss-deep); }
@@ -65,6 +72,8 @@
   #vb-root .vb-msg.ok { background: #EAF0E3; color: var(--moss-deep); }
   #vb-root .vb-msg.err { background: #F5E4DE; color: var(--brick); }
 </style>
+</head>
+<body>
 
 <div id="vb-root">
   <div class="vb-wrap">
@@ -383,3 +392,5 @@
   loadBookings().then(renderBookTab);
 })();
 </script>
+</body>
+</html>
