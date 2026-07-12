@@ -91,9 +91,12 @@
   const CONFIG = {
     committeeLabel: "Lagos Homs Ilupeju Scheme",
     estateName: "Recreational Center Booking",
-    // WhatsApp number of the committee member who receives new booking pings.
-    // International format, digits only, no + or spaces. e.g. 2348012345678
-    committeeWhatsApp: "2348032008517",
+    // WhatsApp numbers of the committee members who receive new booking pings.
+    // International format, digits only, no + or spaces. Add as many as you like.
+    committeeWhatsApp: [
+      { name: "Idongesit", number: "2348032008517" },
+      { name: "Praise", number: "2348094661043" }
+    ],
     // Link to your Event Center Usage Policy (PDF hosted on Vercel, Google Drive, etc.)
     policyLink: "https://drive.google.com/file/d/1FMVoAn_Xc_iBfk2FU3aGxFWcCpLGnZIp/view?usp=sharing",
     // Supabase project connection
@@ -372,13 +375,15 @@
       const waText = encodeURIComponent(
         `New venue booking request:\nName: ${name}\nDate: ${dateLabel}\nEvent: ${eventType}\nPhone: ${phone}\n\nPlease check the committee dashboard to review and approve.`
       );
-      const waLink = `https://wa.me/${CONFIG.committeeWhatsApp}?text=${waText}`;
+      const waButtons = CONFIG.committeeWhatsApp.map(contact => `
+        <a href="https://wa.me/${contact.number}?text=${waText}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#25D366;">
+          Notify ${contact.name} on WhatsApp
+        </a>
+      `).join('');
 
       document.getElementById('vb-form-msg').innerHTML = `
         <div class="vb-msg ok">Booking submitted. The committee will confirm once your payment is verified.</div>
-        <a href="${waLink}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:10px;background:#25D366;">
-          Notify the committee on WhatsApp
-        </a>
+        ${waButtons}
       `;
       paymentImages = [];
     } catch(e) {
