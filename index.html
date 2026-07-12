@@ -75,19 +75,44 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   // ---- Edit these to configure the tool for your estate ----
   const CONFIG = {
-    committeeLabel: "Lagos Homs Ilupeju Scheme",
-    estateName: "Recreational Center Booking",
+    committeeLabel: "Welfare Committee",
+    estateName: "Estate Hall Booking",
     // WhatsApp number of the committee member who receives new booking pings.
     // International format, digits only, no + or spaces. e.g. 2348012345678
     committeeWhatsApp: "2348032008517",
     // Link to your Event Center Usage Policy (PDF hosted on Vercel, Google Drive, etc.)
-    policyLink: "https://drive.google.com/file/d/1FMVoAn_Xc_iBfk2FU3aGxFWcCpLGnZIp/view?usp=sharing"
+    policyLink: "https://drive.google.com/file/d/1FMVoAn_Xc_iBfk2FU3aGxFWcCpLGnZIp/view?usp=sharing",
+    // Supabase project connection
+    supabaseUrl: "https://whgkvkzqqfwapbwudhat.supabase.co",
+    supabaseKey: "sb_publishable_dGMPC9QZ2zEpLK0f6WzU8Q_-Hn3ikYG"
   };
   // -------------------------------------------------------------------
+
+  const supabase = window.supabase.createClient(CONFIG.supabaseUrl, CONFIG.supabaseKey);
+
+  function fromRow(r){
+    return {
+      date: r.date, name: r.name, phone: r.phone, email: r.email,
+      eventType: r.event_type, notes: r.notes,
+      paymentImages: r.payment_images || [], status: r.status,
+      submittedAt: r.submitted_at, policyAgreedAt: r.policy_agreed_at,
+      actionBy: r.action_by, actionAt: r.action_at
+    };
+  }
+  function toRow(b){
+    return {
+      date: b.date, name: b.name, phone: b.phone, email: b.email,
+      event_type: b.eventType, notes: b.notes,
+      payment_images: b.paymentImages, status: b.status,
+      submitted_at: b.submittedAt, policy_agreed_at: b.policyAgreedAt,
+      action_by: b.actionBy || null, action_at: b.actionAt || null
+    };
+  }
 
   const root = document.getElementById('vb-root');
   const bookTab = document.getElementById('vb-book-tab');
@@ -108,14 +133,10 @@
 
   async function loadBookings(){
     try {
-      const list = await window.storage.list('booking:', true);
-      const keys = (list && list.keys) || [];
-      const entries = await Promise.all(keys.map(async k => {
-        try { const res = await window.storage.get(k, true); return res ? JSON.parse(res.value) : null; }
-        catch(e){ return null; }
-      }));
+      const { data, error } = await supabase.from('bookings').select('*');
+      if (error) throw error;
       bookingsCache = {};
-      entries.filter(Boolean).forEach(b => { bookingsCache[b.date] = b; });
+      (data || []).forEach(row => { bookingsCache[row.date] = fromRow(row); });
     } catch(e) { console.error('Failed to load bookings', e); }
   }
 
@@ -334,8 +355,8 @@
         paymentImages: paymentImages.slice(), status: 'pending', submittedAt: new Date().toISOString(),
         policyAgreedAt: new Date().toISOString()
       };
-      const result = await window.storage.set('booking:' + selectedDate, JSON.stringify(booking), true);
-      if (!result) throw new Error('Storage returned no result');
+      const result = await supabase.from('bookings').insert(toRow(booking));
+      if (result.error) throw result.error;
       bookingsCache[selectedDate] = booking;
 
       const dateLabel = new Date(selectedDate+'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
@@ -353,7 +374,7 @@
       paymentImages = [];
     } catch(e) {
       console.error(e);
-      showMsg('Something went wrong submitting your booking. Please try again.', 'err');
+      showMsg('Something went wrong submitting your booking: ' + (e.message || 'please try again.'), 'err');
       btn.disabled = false;
       btn.textContent = 'Submit booking';
     }

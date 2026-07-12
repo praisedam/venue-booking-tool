@@ -59,12 +59,28 @@
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
   // Change this to whatever PIN your committee agrees on
   const COMMITTEE_PIN = "2468";
   // Change this to match your estate name if you like
   const COMMITTEE_LABEL = "Welfare Committee";
+  // Same Supabase project as index.html
+  const SUPABASE_URL = "https://whgkvkzqqfwapbwudhat.supabase.co";
+  const SUPABASE_KEY = "sb_publishable_dGMPC9QZ2zEpLK0f6WzU8Q_-Hn3ikYG";
+
+  const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+  function fromRow(r){
+    return {
+      date: r.date, name: r.name, phone: r.phone, email: r.email,
+      eventType: r.event_type, notes: r.notes,
+      paymentImages: r.payment_images || [], status: r.status,
+      submittedAt: r.submitted_at, policyAgreedAt: r.policy_agreed_at,
+      actionBy: r.action_by, actionAt: r.action_at
+    };
+  }
 
   const body = document.getElementById('vc-body');
   document.getElementById('vc-eyebrow').textContent = COMMITTEE_LABEL;
@@ -86,14 +102,10 @@
 
   async function loadBookings(){
     try {
-      const list = await window.storage.list('booking:', true);
-      const keys = (list && list.keys) || [];
-      const entries = await Promise.all(keys.map(async k => {
-        try { const res = await window.storage.get(k, true); return res ? JSON.parse(res.value) : null; }
-        catch(e){ return null; }
-      }));
+      const { data, error } = await supabase.from('bookings').select('*');
+      if (error) throw error;
       bookingsCache = {};
-      entries.filter(Boolean).forEach(b => { bookingsCache[b.date] = b; });
+      (data || []).forEach(row => { bookingsCache[row.date] = fromRow(row); });
     } catch(e) { console.error('Failed to load bookings', e); }
   }
 
@@ -180,24 +192,26 @@
           btn.disabled = true;
           try {
             if (action === 'delete') {
-              await window.storage.delete('booking:' + date, true);
+              const { error: delErr } = await supabase.from('bookings').delete().eq('date', date);
+              if (delErr) throw delErr;
               delete bookingsCache[date];
               renderBody();
               return;
             }
             // Re-check the live record before writing, in case someone else just acted on it
-            const liveRes = await window.storage.get('booking:' + date, true);
-            const live = liveRes ? JSON.parse(liveRes.value) : null;
+            const { data: liveRow, error: liveErr } = await supabase.from('bookings').select('*').eq('date', date).single();
+            if (liveErr) throw liveErr;
+            const live = liveRow ? fromRow(liveRow) : null;
             if (!live) { renderBody(); return; }
             if (live.status !== expectedStatus) {
               alert(`This booking was already updated by ${live.actionBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
               renderBody();
               return;
             }
-            live.status = action;
-            live.actionBy = memberName;
-            live.actionAt = new Date().toISOString();
-            await window.storage.set('booking:' + date, JSON.stringify(live), true);
+            const { error: updErr } = await supabase.from('bookings').update({
+              status: action, action_by: memberName, action_at: new Date().toISOString()
+            }).eq('date', date);
+            if (updErr) throw updErr;
             renderBody();
           } catch(e) { console.error(e); btn.disabled = false; }
         };
