@@ -1,0 +1,230 @@
+<style>
+  #vc-root {
+    --ink: #201d18; --paper: #FAF6EE; --paper-raised: #FFFFFF; --line: #E4DBC8;
+    --moss: #4B5D3A; --moss-deep: #34412A; --gold: #C08A28; --brick: #A44A36; --muted: #8A8272;
+    --font-display: 'Fraunces', Georgia, serif; --font-body: 'Inter', -apple-system, sans-serif;
+    --radius: 10px;
+    background: var(--paper); color: var(--ink); font-family: var(--font-body);
+    min-height: 100vh; padding: 28px 20px 60px; box-sizing: border-box;
+  }
+  #vc-root * { box-sizing: border-box; }
+  @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
+  #vc-root .vc-wrap { max-width: 720px; margin: 0 auto; }
+  #vc-root .vc-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+  #vc-root .vc-eyebrow { font-size: 11px; letter-spacing: .14em; text-transform: uppercase; color: var(--moss); font-weight: 600; margin: 0 0 4px; }
+  #vc-root h1 { font-family: var(--font-display); font-weight: 600; font-size: 26px; margin: 0; color: var(--ink); line-height: 1.1; }
+  #vc-root .vc-preview-toggle { border: 1px solid var(--line); background: var(--paper-raised); border-radius: 999px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--moss-deep); }
+  #vc-root .vc-preview-toggle.on { background: var(--moss); color: #fff; border-color: var(--moss); }
+  #vc-root .vc-preview-banner { background: #FBEED4; color: #8A6113; font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; }
+
+  #vc-root .vc-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
+  #vc-root .vc-pin-box { max-width: 300px; margin: 40px auto; text-align: center; }
+  #vc-root .vc-pin-box input { text-align: center; letter-spacing: 6px; font-size: 20px; width: 100%; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; font-family: var(--font-body); background: var(--paper); color: var(--ink); }
+  #vc-root label { display: block; font-size: 12px; font-weight: 600; color: var(--moss-deep); margin-bottom: 6px; }
+  #vc-root .vc-submit { margin-top: 14px; width: 100%; background: var(--moss); color: #fff; border: none; padding: 12px; border-radius: 8px; font-weight: 700; font-size: 14px; cursor: pointer; font-family: var(--font-body); }
+  #vc-root .vc-submit:hover { background: var(--moss-deep); }
+  #vc-root .vc-msg { font-size: 13px; margin-top: 10px; padding: 10px 12px; border-radius: 8px; }
+  #vc-root .vc-msg.err { background: #F5E4DE; color: var(--brick); }
+
+  #vc-root .vc-booking-row { display: flex; gap: 14px; padding: 14px 0; border-bottom: 1px solid var(--line); align-items: flex-start; }
+  #vc-root .vc-booking-row:last-child { border-bottom: none; }
+  #vc-root .vc-b-date { font-family: var(--font-display); font-size: 15px; min-width: 78px; font-weight: 600; }
+  #vc-root .vc-b-main { flex: 1; }
+  #vc-root .vc-b-name { font-weight: 700; font-size: 14px; }
+  #vc-root .vc-b-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  #vc-root .vc-status-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; display: inline-block; margin-top: 6px; }
+  #vc-root .vc-status-pill.pending { background: #FBEED4; color: #8A6113; }
+  #vc-root .vc-status-pill.approved { background: #F5E1DC; color: var(--brick); }
+  #vc-root .vc-status-pill.rejected { background: #EEE; color: #888; }
+  #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+  #vc-root .vc-b-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 6px 10px; font-size: 11px; cursor: pointer; font-weight: 600; font-family: var(--font-body); }
+  #vc-root .vc-b-actions button.approve:hover { border-color: var(--brick); color: var(--brick); }
+  #vc-root .vc-proof-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--line); }
+  #vc-root .vc-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
+  #vc-root .vc-modal-overlay { position: fixed; inset: 0; background: rgba(32,29,24,.75); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
+  #vc-root .vc-modal-overlay img { max-width: 100%; max-height: 90vh; border-radius: 8px; }
+</style>
+
+<div id="vc-root">
+  <div class="vc-wrap">
+    <div class="vc-header">
+      <div>
+        <p class="vc-eyebrow" id="vc-eyebrow"></p>
+        <h1>Bookings</h1>
+      </div>
+      <button class="vc-preview-toggle" id="vc-preview-btn">Preview with sample data</button>
+    </div>
+    <div id="vc-body"></div>
+  </div>
+</div>
+
+<script>
+(function(){
+  // Change this to whatever PIN your committee agrees on
+  const COMMITTEE_PIN = "2468";
+  // Change this to match your estate name if you like
+  const COMMITTEE_LABEL = "Welfare Committee";
+
+  const body = document.getElementById('vc-body');
+  document.getElementById('vc-eyebrow').textContent = COMMITTEE_LABEL;
+  let unlocked = false;
+  let bookingsCache = {};
+  let previewMode = false;
+  let memberName = '';
+
+  const SAMPLE = [
+    { date: '2026-07-19', name: 'Ifeoma Chukwu', phone: '0803 221 5590', email: 'ifeoma.c@email.com', eventType: 'Birthday party', notes: 'About 40 guests, need it from 12pm–6pm', status: 'pending', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')] },
+    { date: '2026-07-26', name: 'Tunde Bakare', phone: '0705 118 3342', email: '', eventType: 'Naming ceremony', notes: '', status: 'approved', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')], actionBy: 'Praise', actionAt: '2026-07-13T10:22:00' },
+    { date: '2026-08-02', name: 'Grace Effiong', phone: '0812 940 7761', email: 'grace.effiong@email.com', eventType: 'Meeting / seminar', notes: 'Church group, small setup', status: 'rejected', paymentImages: [samplePlaceholder('Venue')], actionBy: 'Kome', actionAt: '2026-07-14T16:05:00' },
+  ];
+
+  function samplePlaceholder(text){
+    const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='300' height='300'><rect width='300' height='300' fill='%23EAF0E3'/><text x='50%' y='50%' font-family='sans-serif' font-size='22' fill='%234B5D3A' text-anchor='middle' dy='.3em'>${text}%0Areceipt</text></svg>`;
+    return 'data:image/svg+xml;utf8,' + svg;
+  }
+
+  async function loadBookings(){
+    try {
+      const list = await window.storage.list('booking:', true);
+      const keys = (list && list.keys) || [];
+      const entries = await Promise.all(keys.map(async k => {
+        try { const res = await window.storage.get(k, true); return res ? JSON.parse(res.value) : null; }
+        catch(e){ return null; }
+      }));
+      bookingsCache = {};
+      entries.filter(Boolean).forEach(b => { bookingsCache[b.date] = b; });
+    } catch(e) { console.error('Failed to load bookings', e); }
+  }
+
+  function escapeHtml(str){
+    const d = document.createElement('div');
+    d.textContent = str || '';
+    return d.innerHTML;
+  }
+
+  function renderPinGate(){
+    body.innerHTML = `
+      <div class="vc-card vc-pin-box">
+        <label>Your name</label>
+        <input type="text" id="vc-name-input" placeholder="e.g. Ngozi" style="text-align:left;letter-spacing:normal;font-size:14px;margin-bottom:14px;">
+        <label>Committee PIN</label>
+        <input type="text" id="vc-pin-input" maxlength="6" placeholder="••••">
+        <button class="vc-submit" id="vc-pin-submit">Unlock</button>
+        <div id="vc-pin-msg"></div>
+      </div>
+    `;
+    document.getElementById('vc-pin-submit').onclick = () => {
+      const name = document.getElementById('vc-name-input').value.trim();
+      const val = document.getElementById('vc-pin-input').value.trim();
+      if (!name) { document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Please enter your name first.</div>`; return; }
+      if (val === COMMITTEE_PIN) { unlocked = true; memberName = name; renderBody(); }
+      else document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Incorrect PIN.</div>`;
+    };
+    document.getElementById('vc-pin-input').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('vc-pin-submit').click(); };
+  }
+
+  function renderList(list, isPreview){
+    if (isPreview) {
+      body.innerHTML = `<div class="vc-preview-banner">Showing sample bookings so you can see the layout. None of this is real data.</div><div class="vc-card" id="vc-list"></div>`;
+    } else {
+      body.innerHTML = `<div class="vc-card" id="vc-list"></div>`;
+    }
+    const listEl = document.getElementById('vc-list');
+    if (list.length === 0){
+      listEl.innerHTML = `<div class="vc-empty">No bookings yet. Once someone books a date, it'll show up here.</div>`;
+      return;
+    }
+    listEl.innerHTML = list.map(b => {
+      const images = b.paymentImages || (b.paymentImage ? [b.paymentImage] : []);
+      const thumbsHtml = images.map(src => `<img class="vc-proof-thumb" src="${src}" data-full="${src}">`).join('');
+      return `
+      <div class="vc-booking-row">
+        <div style="display:flex;flex-direction:column;gap:4px;">${thumbsHtml}</div>
+        <div class="vc-b-date">${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
+        <div class="vc-b-main">
+          <div class="vc-b-name">${escapeHtml(b.name)}</div>
+          <div class="vc-b-sub">${escapeHtml(b.phone)}${b.email ? ' · ' + escapeHtml(b.email) : ''} · ${escapeHtml(b.eventType)}</div>
+          ${b.notes ? `<div class="vc-b-sub">${escapeHtml(b.notes)}</div>` : ''}
+          ${b.policyAgreedAt ? `<div class="vc-b-sub">Agreed to usage policy at submission</div>` : ''}
+          <span class="vc-status-pill ${b.status}">${b.status}</span>
+          ${b.actionBy ? `<div class="vc-b-sub" style="margin-top:4px;">${b.status === 'approved' ? 'Approved' : b.status === 'rejected' ? 'Rejected' : 'Updated'} by ${escapeHtml(b.actionBy)} · ${new Date(b.actionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+          ${b.status === 'approved' && b.phone ? `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Send approval to resident on WhatsApp →</a>` : ''}
+        </div>
+        <div class="vc-b-actions">
+          ${b.status !== 'approved' ? `<button class="approve" data-date="${b.date}" data-action="approved" ${isPreview?'disabled':''}>Approve</button>` : ''}
+          ${b.status !== 'rejected' ? `<button data-date="${b.date}" data-action="rejected" ${isPreview?'disabled':''}>Reject</button>` : ''}
+          ${b.status !== 'pending' ? `<button data-date="${b.date}" data-action="pending" ${isPreview?'disabled':''}>Reset</button>` : ''}
+          <button data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>
+        </div>
+      </div>
+    `;
+    }).join('');
+
+    listEl.querySelectorAll('.vc-proof-thumb').forEach(img => {
+      img.onclick = () => {
+        const overlay = document.createElement('div');
+        overlay.className = 'vc-modal-overlay';
+        overlay.innerHTML = `<img src="${img.dataset.full}">`;
+        overlay.onclick = () => overlay.remove();
+        document.body.appendChild(overlay);
+      };
+    });
+
+    if (!isPreview){
+      listEl.querySelectorAll('.vc-b-actions button').forEach(btn => {
+        btn.onclick = async () => {
+          const date = btn.dataset.date;
+          const action = btn.dataset.action;
+          const expectedStatus = bookingsCache[date] ? bookingsCache[date].status : null;
+          btn.disabled = true;
+          try {
+            if (action === 'delete') {
+              await window.storage.delete('booking:' + date, true);
+              delete bookingsCache[date];
+              renderBody();
+              return;
+            }
+            // Re-check the live record before writing, in case someone else just acted on it
+            const liveRes = await window.storage.get('booking:' + date, true);
+            const live = liveRes ? JSON.parse(liveRes.value) : null;
+            if (!live) { renderBody(); return; }
+            if (live.status !== expectedStatus) {
+              alert(`This booking was already updated by ${live.actionBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
+              renderBody();
+              return;
+            }
+            live.status = action;
+            live.actionBy = memberName;
+            live.actionAt = new Date().toISOString();
+            await window.storage.set('booking:' + date, JSON.stringify(live), true);
+            renderBody();
+          } catch(e) { console.error(e); btn.disabled = false; }
+        };
+      });
+    }
+  }
+
+  function renderBody(){
+    if (!unlocked) { renderPinGate(); return; }
+    if (previewMode) {
+      renderList(SAMPLE, true);
+      return;
+    }
+    body.innerHTML = `<div class="vc-card">Loading bookings...</div>`;
+    loadBookings().then(() => {
+      const all = Object.values(bookingsCache).sort((a,b) => a.date.localeCompare(b.date));
+      renderList(all, false);
+    });
+  }
+
+  document.getElementById('vc-preview-btn').onclick = () => {
+    previewMode = !previewMode;
+    document.getElementById('vc-preview-btn').classList.toggle('on', previewMode);
+    document.getElementById('vc-preview-btn').textContent = previewMode ? 'Exit preview' : 'Preview with sample data';
+    if (unlocked) renderBody();
+  };
+
+  renderBody();
+})();
+</script>
