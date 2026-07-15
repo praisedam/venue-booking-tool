@@ -91,15 +91,10 @@
   const CONFIG = {
     committeeLabel: "Lagos Homs Ilupeju Scheme",
     estateName: "Recreational Center Booking",
-    // WhatsApp numbers of the committee members who receive new booking pings.
-    committeeWhatsApp: [
-      { name: "Idongesit", number: "2348032008517" },
-      { name: "Praise", number: "2348094661043" }
-    ],
     // WhatsApp numbers of Finance Secretary & Assistant, who verify payment first.
     financeWhatsApp: [
-      { name: "Rotana", number: "2348038325045" },
-      { name: "Temitope", number: "2348035308329" }
+      { name: "Financial Secretary", number: "2348000000001" },
+      { name: "Financial Assistant", number: "2348000000002" }
     ],
     // Link to your Event Center Usage Policy (PDF hosted on Vercel, Google Drive, etc.)
     policyLink: "https://drive.google.com/file/d/1FMVoAn_Xc_iBfk2FU3aGxFWcCpLGnZIp/view?usp=sharing",
@@ -376,16 +371,10 @@
       bookingsCache[selectedDate] = booking;
 
       const dateLabel = new Date(selectedDate+'T00:00:00').toLocaleDateString('en-GB', { day:'numeric', month:'long', year:'numeric' });
-      const waText = encodeURIComponent(
-        `New venue booking request:\nName: ${name}\nDate: ${dateLabel}\nEvent: ${eventType}\nPhone: ${phone}\n\nPlease check the committee dashboard to review.`
-      );
       const financeWaText = encodeURIComponent(
         `New venue booking awaiting payment verification:\nName: ${name}\nDate: ${dateLabel}\nEvent: ${eventType}\nPhone: ${phone}\n\nPlease check the committee dashboard to verify payment and approve or decline.`
       );
-      const waButtons = [
-        ...CONFIG.committeeWhatsApp.map(c => `<a href="https://wa.me/${c.number}?text=${waText}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#25D366;">Notify ${c.name} (Welfare) on WhatsApp</a>`),
-        ...CONFIG.financeWhatsApp.map(c => `<a href="https://wa.me/${c.number}?text=${financeWaText}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#25D366;">Notify ${c.name} (Finance) on WhatsApp</a>`)
-      ].join('');
+      const waButtons = CONFIG.financeWhatsApp.map(c => `<a href="https://wa.me/${c.number}?text=${financeWaText}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#25D366;">Notify ${c.name} (Finance) on WhatsApp</a>`).join('');
 
       document.getElementById('vb-form-msg').innerHTML = `
         <div class="vb-msg ok">Booking submitted. Finance will verify your payment, then the Welfare Committee gives final approval.</div>
