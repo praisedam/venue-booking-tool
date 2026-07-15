@@ -43,6 +43,8 @@
   #vc-root .vc-b-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
   #vc-root .vc-status-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; display: inline-block; margin-top: 6px; }
   #vc-root .vc-status-pill.pending { background: #FBEED4; color: #8A6113; }
+  #vc-root .vc-status-pill.awaiting_welfare { background: #DCE7F5; color: #2F5A8A; }
+  #vc-root .vc-status-pill.finance_declined { background: #EEE; color: #888; }
   #vc-root .vc-status-pill.approved { background: #F5E1DC; color: var(--brick); }
   #vc-root .vc-status-pill.rejected { background: #EEE; color: #888; }
   #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
@@ -79,10 +81,17 @@
   // Change this to whatever PIN your committee agrees on
   const COMMITTEE_PIN = "2468";
   // Change this to match your estate name if you like
-  const COMMITTEE_LABEL = "Welfare Committee";
+  const COMMITTEE_LABEL = "Lagos Homs Ilupeju Scheme";
   // Same Supabase project as index.html
   const SUPABASE_URL = "https://whgkvkzqqfwapbwudhat.supabase.co";
   const SUPABASE_KEY = "sb_publishable_dGMPC9QZ2zEpLK0f6WzU8Q_-Hn3ikYG";
+  // WhatsApp numbers to notify Welfare once Finance approves payment
+  const WELFARE_CONTACTS = [
+    { name: "Idongesit", number: "2348032008517" },
+    { name: "Praise", number: "2348094661043" }
+  ];
+  // WhatsApp number of the General Secretary, notified after Welfare's final approval
+  const GENERAL_SECRETARY = { name: "General Secretary", number: "2348138372727" };
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -92,7 +101,9 @@
       eventType: r.event_type, notes: r.notes,
       paymentImages: r.payment_images || [], status: r.status,
       submittedAt: r.submitted_at, policyAgreedAt: r.policy_agreed_at,
-      actionBy: r.action_by, actionAt: r.action_at
+      actionBy: r.action_by, actionAt: r.action_at,
+      financeActionBy: r.finance_action_by, financeActionAt: r.finance_action_at,
+      declineReason: r.decline_reason
     };
   }
 
@@ -105,8 +116,9 @@
 
   const SAMPLE = [
     { date: '2026-07-19', name: 'Ifeoma Chukwu', phone: '0803 221 5590', email: 'ifeoma.c@email.com', eventType: 'Birthday party', notes: 'About 40 guests, need it from 12pm–6pm', status: 'pending', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')] },
-    { date: '2026-07-26', name: 'Tunde Bakare', phone: '0705 118 3342', email: '', eventType: 'Naming ceremony', notes: '', status: 'approved', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')], actionBy: 'Praise', actionAt: '2026-07-13T10:22:00' },
-    { date: '2026-08-02', name: 'Grace Effiong', phone: '0812 940 7761', email: 'grace.effiong@email.com', eventType: 'Meeting / seminar', notes: 'Church group, small setup', status: 'rejected', paymentImages: [samplePlaceholder('Venue')], actionBy: 'Kome', actionAt: '2026-07-14T16:05:00' },
+    { date: '2026-07-22', name: 'Wale Adisa', phone: '0701 445 2290', email: '', eventType: 'Meeting / seminar', notes: '', status: 'awaiting_welfare', paymentImages: [samplePlaceholder('Venue')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-14T09:10:00' },
+    { date: '2026-07-26', name: 'Tunde Bakare', phone: '0705 118 3342', email: '', eventType: 'Naming ceremony', notes: '', status: 'approved', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-13T09:00:00', actionBy: 'Praise', actionAt: '2026-07-13T10:22:00' },
+    { date: '2026-08-02', name: 'Grace Effiong', phone: '0812 940 7761', email: 'grace.effiong@email.com', eventType: 'Meeting / seminar', notes: 'Church group, small setup', status: 'finance_declined', paymentImages: [samplePlaceholder('Venue')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-14T16:05:00', declineReason: 'Payment amount does not match the booking fee' },
   ];
 
   function samplePlaceholder(text){
@@ -164,6 +176,41 @@
     listEl.innerHTML = list.map(b => {
       const images = b.paymentImages || (b.paymentImage ? [b.paymentImage] : []);
       const thumbsHtml = images.map(src => `<img class="vc-proof-thumb" src="${src}" data-full="${src}">`).join('');
+
+      const statusLabels = {
+        pending: 'Awaiting Finance',
+        awaiting_welfare: 'Awaiting Welfare',
+        finance_declined: 'Declined by Finance',
+        approved: 'Approved',
+        rejected: 'Declined by Welfare'
+      };
+
+      let actionsHtml = '';
+      if (b.status === 'pending') {
+        actionsHtml = `
+          <button class="approve" data-date="${b.date}" data-action="awaiting_welfare" data-stage="finance" ${isPreview?'disabled':''}>Confirm payment (Finance)</button>
+          <button data-date="${b.date}" data-action="finance_declined" data-stage="finance" ${isPreview?'disabled':''}>Decline payment (Finance)</button>
+        `;
+      } else if (b.status === 'awaiting_welfare') {
+        actionsHtml = `
+          <button class="approve" data-date="${b.date}" data-action="approved" data-stage="welfare" ${isPreview?'disabled':''}>Final approve (Welfare)</button>
+          <button data-date="${b.date}" data-action="rejected" data-stage="welfare" ${isPreview?'disabled':''}>Reject (Welfare)</button>
+        `;
+      }
+      actionsHtml += `<button data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>`;
+
+      let notifyHtml = '';
+      if (b.status === 'awaiting_welfare') {
+        notifyHtml = WELFARE_CONTACTS.map(c => `<a href="https://wa.me/${c.number}?text=${encodeURIComponent('Payment confirmed for '+b.name+' — '+b.date+'. Please give final approval on the committee dashboard.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-right:10px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify ${c.name} (Welfare) →</a>`).join('');
+      } else if (b.status === 'finance_declined' && b.phone) {
+        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' could not be confirmed. Reason: '+(b.declineReason||'Payment could not be verified')+'. Please contact us to resolve.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of decline →</a>`;
+      } else if (b.status === 'approved') {
+        notifyHtml = `<a href="https://wa.me/${GENERAL_SECRETARY.number}?text=${encodeURIComponent('Booking approved: '+b.name+' — '+b.date+' ('+b.eventType+'). Please announce to the General House.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-right:10px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify General Secretary →</a>`
+          + (b.phone ? `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Send approval to resident →</a>` : '');
+      } else if (b.status === 'rejected' && b.phone) {
+        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' was not approved. Reason: '+(b.declineReason||'Not specified')+'.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of decline →</a>`;
+      }
+
       return `
       <div class="vc-booking-row">
         <div style="display:flex;flex-direction:column;gap:4px;">${thumbsHtml}</div>
@@ -173,15 +220,14 @@
           <div class="vc-b-sub">${escapeHtml(b.phone)}${b.email ? ' · ' + escapeHtml(b.email) : ''} · ${escapeHtml(b.eventType)}</div>
           ${b.notes ? `<div class="vc-b-sub">${escapeHtml(b.notes)}</div>` : ''}
           ${b.policyAgreedAt ? `<div class="vc-b-sub">Agreed to usage policy at submission</div>` : ''}
-          <span class="vc-status-pill ${b.status}">${b.status}</span>
-          ${b.actionBy ? `<div class="vc-b-sub" style="margin-top:4px;">${b.status === 'approved' ? 'Approved' : b.status === 'rejected' ? 'Rejected' : 'Updated'} by ${escapeHtml(b.actionBy)} · ${new Date(b.actionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
-          ${b.status === 'approved' && b.phone ? `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:8px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Send approval to resident on WhatsApp →</a>` : ''}
+          <span class="vc-status-pill ${b.status}">${statusLabels[b.status] || b.status}</span>
+          ${b.declineReason ? `<div class="vc-b-sub" style="margin-top:4px;">Reason: ${escapeHtml(b.declineReason)}</div>` : ''}
+          ${b.financeActionBy ? `<div class="vc-b-sub" style="margin-top:4px;">Payment ${b.status === 'finance_declined' ? 'declined' : 'confirmed'} by ${escapeHtml(b.financeActionBy)} · ${new Date(b.financeActionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+          ${b.actionBy ? `<div class="vc-b-sub">${b.status === 'approved' ? 'Approved' : 'Rejected'} by ${escapeHtml(b.actionBy)} · ${new Date(b.actionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+          ${notifyHtml}
         </div>
         <div class="vc-b-actions">
-          ${b.status !== 'approved' ? `<button class="approve" data-date="${b.date}" data-action="approved" ${isPreview?'disabled':''}>Approve</button>` : ''}
-          ${b.status !== 'rejected' ? `<button data-date="${b.date}" data-action="rejected" ${isPreview?'disabled':''}>Reject</button>` : ''}
-          ${b.status !== 'pending' ? `<button data-date="${b.date}" data-action="pending" ${isPreview?'disabled':''}>Reset</button>` : ''}
-          <button data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>
+          ${actionsHtml}
         </div>
       </div>
     `;
@@ -202,7 +248,15 @@
         btn.onclick = async () => {
           const date = btn.dataset.date;
           const action = btn.dataset.action;
+          const stage = btn.dataset.stage; // 'finance', 'welfare', or undefined for delete
           const expectedStatus = bookingsCache[date] ? bookingsCache[date].status : null;
+
+          let reason = null;
+          if (action === 'finance_declined' || action === 'rejected') {
+            reason = prompt('Please give a short reason (this will be shared with the resident):');
+            if (reason === null) return; // cancelled
+          }
+
           btn.disabled = true;
           try {
             if (action === 'delete') {
@@ -218,13 +272,22 @@
             const live = liveRow ? fromRow(liveRow) : null;
             if (!live) { renderBody(); return; }
             if (live.status !== expectedStatus) {
-              alert(`This booking was already updated by ${live.actionBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
+              alert(`This booking was already updated by ${live.actionBy || live.financeActionBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
               renderBody();
               return;
             }
-            const { error: updErr } = await supabase.from('bookings').update({
-              status: action, action_by: memberName, action_at: new Date().toISOString()
-            }).eq('date', date);
+
+            const update = { status: action };
+            if (reason) update.decline_reason = reason;
+            if (stage === 'finance') {
+              update.finance_action_by = memberName;
+              update.finance_action_at = new Date().toISOString();
+            } else if (stage === 'welfare') {
+              update.action_by = memberName;
+              update.action_at = new Date().toISOString();
+            }
+
+            const { error: updErr } = await supabase.from('bookings').update(update).eq('date', date);
             if (updErr) throw updErr;
             renderBody();
           } catch(e) { console.error(e); btn.disabled = false; }
