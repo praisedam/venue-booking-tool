@@ -366,7 +366,7 @@
         paymentImages: paymentImages.slice(), status: 'pending', submittedAt: new Date().toISOString(),
         policyAgreedAt: new Date().toISOString()
       };
-      const result = await supabase.from('bookings').insert(toRow(booking));
+      const result = await supabase.from('bookings').upsert(toRow(booking));
       if (result.error) throw result.error;
       bookingsCache[selectedDate] = booking;
 
