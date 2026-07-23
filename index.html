@@ -93,8 +93,8 @@
     estateName: "Recreational Center Booking",
     // WhatsApp numbers of Finance Secretary & Assistant, who verify payment first.
     financeWhatsApp: [
-      { name: "Financial Secretary", number: "2348038325045" },
-      { name: "Financial Assistant", number: "2348035308329" }
+      { name: "Financial Secretary", number: "2348000000001" },
+      { name: "Financial Assistant", number: "2348000000002" }
     ],
     // Link to your Event Center Usage Policy (PDF hosted on Vercel, Google Drive, etc.)
     policyLink: "https://drive.google.com/file/d/1FMVoAn_Xc_iBfk2FU3aGxFWcCpLGnZIp/view?usp=sharing",
@@ -380,6 +380,7 @@
         <div class="vb-msg ok">Booking submitted. Finance will verify your payment, then the Welfare Committee gives final approval.</div>
         ${waButtons}
       `;
+      btn.style.display = 'none';
       paymentImages = [];
     } catch(e) {
       console.error(e);
