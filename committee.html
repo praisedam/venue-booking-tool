@@ -7,7 +7,7 @@
 <style>
   #vc-root {
     --ink: #201d18; --paper: #FAF6EE; --paper-raised: #FFFFFF; --line: #E4DBC8;
-    --moss: #4B5D3A; --moss-deep: #34412A; --gold: #C08A28; --brick: #A44A36; --muted: #8A8272;
+    --moss: #4B5D3A; --moss-deep: #34412A; --gold: #C08A28; --brick: #A44A36; --leaf: #3F7D4C; --muted: #8A8272;
     --font-display: 'Fraunces', Georgia, serif; --font-body: 'Inter', -apple-system, sans-serif;
     --radius: 10px;
     background: var(--paper); color: var(--ink); font-family: var(--font-body);
@@ -44,13 +44,18 @@
   #vc-root .vc-status-pill { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; padding: 3px 9px; border-radius: 999px; display: inline-block; margin-top: 6px; }
   #vc-root .vc-status-pill.pending { background: #FBEED4; color: #8A6113; }
   #vc-root .vc-status-pill.awaiting_welfare { background: #DCE7F5; color: #2F5A8A; }
-  #vc-root .vc-status-pill.finance_declined { background: #EEE; color: #888; }
-  #vc-root .vc-status-pill.approved { background: #F5E1DC; color: var(--brick); }
-  #vc-root .vc-status-pill.rejected { background: #EEE; color: #888; }
+  #vc-root .vc-status-pill.finance_declined { background: #F5E1DC; color: var(--brick); }
+  #vc-root .vc-status-pill.approved { background: #E3EFDF; color: var(--leaf); }
+  #vc-root .vc-status-pill.rejected { background: #F5E1DC; color: var(--brick); }
   #vc-root .vc-status-pill.cancelled { background: #EAE0D5; color: #6B5D4A; }
+  #vc-root .vc-notify-btn { display: inline-block; margin-top: 8px; margin-right: 8px; padding: 9px 14px; font-size: 12px; font-weight: 700; color: #fff; background: #25D366; border-radius: 6px; text-decoration: none; }
+  #vc-root .vc-role-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
   #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
   #vc-root .vc-b-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 9px 12px; font-size: 12px; cursor: pointer; font-weight: 600; font-family: var(--font-body); min-height: 36px; }
-  #vc-root .vc-b-actions button.approve:hover { border-color: var(--brick); color: var(--brick); }
+  #vc-root .vc-b-actions button.approve { background: var(--leaf); border-color: var(--leaf); color: #fff; }
+  #vc-root .vc-b-actions button.approve:hover { background: #356A40; }
+  #vc-root .vc-b-actions button.danger { background: var(--brick); border-color: var(--brick); color: #fff; }
+  #vc-root .vc-b-actions button.danger:hover { background: #8A3A2A; }
   #vc-root .vc-proof-thumb { width: 54px; height: 54px; object-fit: cover; border-radius: 6px; cursor: pointer; border: 1px solid var(--line); }
   #vc-root .vc-empty { text-align: center; padding: 40px 20px; color: var(--muted); font-size: 13px; }
   #vc-root .vc-modal-overlay { position: fixed; inset: 0; background: rgba(32,29,24,.75); display: flex; align-items: center; justify-content: center; z-index: 999; padding: 20px; }
@@ -87,11 +92,12 @@
   // WhatsApp numbers to notify Welfare once Finance approves payment
   const WELFARE_CONTACTS = [
     { name: "Praise", number: "2348094661043" },
-    { name: "Idongesit", number: "2348032008517" },
-    { name: "Jumoke", number: "2347082991479" }
+    { name: "Idongesit", number: "2348032008517" }
   ];
   // WhatsApp number of the General Secretary, notified after Welfare's final approval
   const GENERAL_SECRETARY = { name: "Oluchi (General Secretary)", number: "2348138372727" };
+  // Finance contact residents are directed to for refunds
+  const REFUND_CONTACT = { name: "Temitope (Finance)", number: "2348035308329" };
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -138,6 +144,13 @@
     } catch(e) { console.error('Failed to load bookings', e); }
   }
 
+  function waNumber(phone){
+    let digits = (phone || '').replace(/[^0-9]/g, '');
+    if (digits.startsWith('0')) digits = '234' + digits.slice(1);
+    else if (!digits.startsWith('234')) digits = '234' + digits;
+    return digits;
+  }
+
   function escapeHtml(str){
     const d = document.createElement('div');
     d.textContent = str || '';
@@ -148,11 +161,20 @@
     body.innerHTML = `
       <div class="vc-card vc-pin-box">
         <label>Your PIN</label>
-        <input type="text" id="vc-pin-input" maxlength="6" placeholder="••••">
+        <div style="position:relative;">
+          <input type="password" id="vc-pin-input" maxlength="6" placeholder="••••" style="padding-right:60px;">
+          <button type="button" id="vc-pin-toggle" style="position:absolute;right:6px;top:50%;transform:translateY(-50%);border:none;background:none;font-size:11px;font-weight:700;color:var(--moss);cursor:pointer;letter-spacing:normal;">Show</button>
+        </div>
         <button class="vc-submit" id="vc-pin-submit">Unlock</button>
         <div id="vc-pin-msg"></div>
       </div>
     `;
+    document.getElementById('vc-pin-toggle').onclick = () => {
+      const input = document.getElementById('vc-pin-input');
+      const toggle = document.getElementById('vc-pin-toggle');
+      if (input.type === 'password') { input.type = 'text'; toggle.textContent = 'Hide'; }
+      else { input.type = 'password'; toggle.textContent = 'Show'; }
+    };
     document.getElementById('vc-pin-submit').onclick = async () => {
       const val = document.getElementById('vc-pin-input').value.trim().toUpperCase();
       const btn = document.getElementById('vc-pin-submit');
@@ -205,40 +227,54 @@
         cancelled: 'Cancelled'
       };
 
+      const canFinance = memberRole === 'finance' || memberRole === 'chairman';
+      const canWelfare = memberRole === 'welfare' || memberRole === 'chairman';
+
       let actionsHtml = '';
       if (b.status === 'pending') {
-        actionsHtml = `
-          <button class="approve" data-date="${b.date}" data-action="awaiting_welfare" data-stage="finance" ${isPreview?'disabled':''}>Confirm payment (Finance)</button>
-          <button data-date="${b.date}" data-action="finance_declined" data-stage="finance" ${isPreview?'disabled':''}>Decline payment (Finance)</button>
-        `;
+        if (canFinance) {
+          actionsHtml = `
+            <button class="approve" data-date="${b.date}" data-action="awaiting_welfare" data-stage="finance" ${isPreview?'disabled':''}>Confirm payment (Finance)</button>
+            <button class="danger" data-date="${b.date}" data-action="finance_declined" data-stage="finance" ${isPreview?'disabled':''}>Decline payment (Finance)</button>
+          `;
+        } else {
+          actionsHtml = `<div class="vc-role-note">Only Finance or the Chairman can act on this booking.</div>`;
+        }
       } else if (b.status === 'awaiting_welfare') {
-        actionsHtml = `
-          <button class="approve" data-date="${b.date}" data-action="approved" data-stage="welfare" ${isPreview?'disabled':''}>Final approve (Welfare)</button>
-          <button data-date="${b.date}" data-action="rejected" data-stage="welfare" ${isPreview?'disabled':''}>Reject (Welfare)</button>
-        `;
+        if (canWelfare) {
+          actionsHtml = `
+            <button class="approve" data-date="${b.date}" data-action="approved" data-stage="welfare" ${isPreview?'disabled':''}>Final approve (Welfare)</button>
+            <button class="danger" data-date="${b.date}" data-action="rejected" data-stage="welfare" ${isPreview?'disabled':''}>Reject (Welfare)</button>
+          `;
+        } else {
+          actionsHtml = `<div class="vc-role-note">Only Welfare or the Chairman can act on this booking.</div>`;
+        }
       }
       if (b.status !== 'cancelled') {
-        actionsHtml += `<button data-date="${b.date}" data-action="cancelled" data-stage="cancel" ${isPreview?'disabled':''}>Cancel booking</button>`;
+        actionsHtml += `<button class="danger" data-date="${b.date}" data-action="cancelled" data-stage="cancel" ${isPreview?'disabled':''}>Cancel booking</button>`;
       }
-      actionsHtml += `<button data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>`;
+      actionsHtml += `<button class="danger" data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>`;
 
       let notifyHtml = '';
       if (b.status === 'awaiting_welfare') {
-        notifyHtml = WELFARE_CONTACTS.map(c => `<a href="https://wa.me/${c.number}?text=${encodeURIComponent('Payment confirmed for '+b.name+' — '+b.date+'. Please give final approval on the committee dashboard.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-right:10px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify ${c.name} (Welfare) →</a>`).join('');
+        notifyHtml = WELFARE_CONTACTS.map(c => `<a class="vc-notify-btn" href="https://wa.me/${c.number}?text=${encodeURIComponent('Payment confirmed for '+b.name+' — '+b.date+'. Please give final approval on the committee dashboard.')}" target="_blank" rel="noopener">Notify ${c.name} (Welfare)</a>`).join('');
       } else if (b.status === 'finance_declined' && b.phone) {
-        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' could not be confirmed. Reason: '+(b.declineReason||'Payment could not be verified')+'. Please contact us to resolve.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of decline →</a>`;
+        notifyHtml = `<a class="vc-notify-btn" href="https://wa.me/${waNumber(b.phone)}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' could not be confirmed. Reason: '+(b.declineReason||'Payment could not be verified')+'. Please contact us to resolve.')}" target="_blank" rel="noopener">Notify resident of decline</a>`;
       } else if (b.status === 'approved') {
-        notifyHtml = `<a href="https://wa.me/${GENERAL_SECRETARY.number}?text=${encodeURIComponent('Booking approved: '+b.name+' — '+b.date+' ('+b.eventType+'). Please announce to the General House.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;margin-right:10px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify General Secretary →</a>`
-          + (b.phone ? `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Send approval to resident →</a>` : '');
+        notifyHtml = `<a class="vc-notify-btn" href="https://wa.me/${GENERAL_SECRETARY.number}?text=${encodeURIComponent('Booking approved: '+b.name+' — '+b.date+' ('+b.eventType+'). Please announce to the General House.')}" target="_blank" rel="noopener">Notify General Secretary</a>`
+          + (b.phone ? `<a class="vc-notify-btn" href="https://wa.me/${waNumber(b.phone)}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener">Send approval to resident</a>` : '');
       } else if (b.status === 'rejected' && b.phone) {
-        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' was not approved. Reason: '+(b.declineReason||'Not specified')+'.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of decline →</a>`;
+        notifyHtml = `<a class="vc-notify-btn" href="https://wa.me/${waNumber(b.phone)}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' was not approved. Reason: '+(b.declineReason||'Not specified')+'. To process your refund, please send your account details to '+REFUND_CONTACT.name+' on '+REFUND_CONTACT.number+'.')}" target="_blank" rel="noopener">Notify resident of decline</a>`;
       } else if (b.status === 'cancelled' && b.phone) {
-        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been cancelled.'+(b.cancelReason ? ' Reason: '+b.cancelReason : '')+' Please contact us if you have questions.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of cancellation →</a>`;
+        notifyHtml = `<a class="vc-notify-btn" href="https://wa.me/${waNumber(b.phone)}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been cancelled.'+(b.cancelReason ? ' Reason: '+b.cancelReason : '')+' To process your refund, please send your account details to '+REFUND_CONTACT.name+' on '+REFUND_CONTACT.number+'.')}" target="_blank" rel="noopener">Notify resident of cancellation</a>`;
       }
 
       return `
       <div class="vc-booking-row">
-        <div style="display:flex;flex-direction:column;gap:4px;">${thumbsHtml}</div>
+        <div style="display:flex;flex-direction:column;gap:4px;align-items:center;">
+          ${thumbsHtml}
+          ${images.length ? `<span style="font-size:9px;color:var(--muted);text-align:center;">Tap to view</span>` : ''}
+        </div>
         <div class="vc-b-date">${new Date(b.date+'T00:00:00').toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})}</div>
         <div class="vc-b-main">
           <div class="vc-b-name">${escapeHtml(b.name)}</div>
@@ -265,7 +301,7 @@
         overlay.className = 'vc-modal-overlay';
         overlay.innerHTML = `<img src="${img.dataset.full}">`;
         overlay.onclick = () => overlay.remove();
-        document.body.appendChild(overlay);
+        document.getElementById('vc-root').appendChild(overlay);
       };
     });
 

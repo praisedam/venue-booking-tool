@@ -70,6 +70,7 @@
   #vb-root .vb-submit:disabled { background: #C7BFA9; cursor: not-allowed; }
   #vb-root .vb-msg { font-size: 13px; margin-top: 10px; padding: 10px 12px; border-radius: 8px; }
   #vb-root .vb-msg.ok { background: #EAF0E3; color: var(--moss-deep); }
+  #vb-root .vb-msg.warn { background: #FBEED4; color: #8A6113; font-weight: 600; }
   #vb-root .vb-msg.err { background: #F5E4DE; color: var(--brick); }
 </style>
 </head>
@@ -377,7 +378,8 @@
       const waButtons = CONFIG.financeWhatsApp.map(c => `<a href="https://wa.me/${c.number}?text=${financeWaText}" target="_blank" rel="noopener" class="vb-submit" style="display:block;text-align:center;text-decoration:none;margin-top:8px;background:#25D366;">Notify ${c.name} (Finance) on WhatsApp</a>`).join('');
 
       document.getElementById('vb-form-msg').innerHTML = `
-        <div class="vb-msg ok">Booking submitted. Finance will verify your payment, then the Welfare Committee gives final approval.</div>
+        <div class="vb-msg ok">Booking submitted successfully.</div>
+        <div class="vb-msg warn">Important: your booking isn't complete until you notify Finance below — please tap the button(s) now so they know to check your payment.</div>
         ${waButtons}
       `;
       btn.style.display = 'none';
