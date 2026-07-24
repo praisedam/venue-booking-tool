@@ -23,6 +23,8 @@
   #vc-root h1 { font-family: var(--font-display); font-weight: 600; font-size: 26px; margin: 0; color: var(--ink); line-height: 1.1; }
   #vc-root .vc-preview-toggle { border: 1px solid var(--line); background: var(--paper-raised); border-radius: 999px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; color: var(--moss-deep); }
   #vc-root .vc-preview-toggle.on { background: var(--moss); color: #fff; border-color: var(--moss); }
+  #vc-root .vc-session-text { font-size: 12px; color: var(--muted); }
+  #vc-root .vc-logout-btn { border: 1px solid var(--brick); background: var(--paper-raised); color: var(--brick); border-radius: 999px; padding: 7px 14px; font-size: 12px; font-weight: 600; cursor: pointer; margin-left: 8px; }
   #vc-root .vc-preview-banner { background: #FBEED4; color: #8A6113; font-size: 12px; font-weight: 600; padding: 8px 14px; border-radius: 8px; margin-bottom: 14px; }
 
   #vc-root .vc-card { background: var(--paper-raised); border: 1px solid var(--line); border-radius: var(--radius); padding: 22px; }
@@ -75,7 +77,10 @@
         <p class="vc-eyebrow" id="vc-eyebrow"></p>
         <h1>Bookings</h1>
       </div>
-      <button class="vc-preview-toggle" id="vc-preview-btn">Preview with sample data</button>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div id="vc-session-info"></div>
+        <button class="vc-preview-toggle" id="vc-preview-btn">Preview with sample data</button>
+      </div>
     </div>
     <div id="vc-body"></div>
   </div>
@@ -257,7 +262,7 @@
       actionsHtml += `<button class="danger" data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>`;
 
       let notifyHtml = '';
-      if (b.status === 'awaiting_welfare') {
+      if (b.status === 'awaiting_welfare' && !canWelfare) {
         notifyHtml = WELFARE_CONTACTS.map(c => `<a class="vc-notify-btn" href="https://wa.me/${c.number}?text=${encodeURIComponent('Payment confirmed for '+b.name+' — '+b.date+'. Please give final approval on the committee dashboard.')}" target="_blank" rel="noopener">Notify ${c.name} (Welfare)</a>`).join('');
       } else if (b.status === 'finance_declined' && b.phone) {
         notifyHtml = `<a class="vc-notify-btn" href="https://wa.me/${waNumber(b.phone)}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' could not be confirmed. Reason: '+(b.declineReason||'Payment could not be verified')+'. Please contact us to resolve.')}" target="_blank" rel="noopener">Notify resident of decline</a>`;
@@ -367,7 +372,21 @@
     }
   }
 
+  function renderSessionInfo(){
+    const el = document.getElementById('vc-session-info');
+    if (!unlocked) { el.innerHTML = ''; return; }
+    el.innerHTML = `<span class="vc-session-text">Logged in as <strong>${escapeHtml(memberName)}</strong></span><button class="vc-logout-btn" id="vc-logout-btn">Logout</button>`;
+    document.getElementById('vc-logout-btn').onclick = () => {
+      unlocked = false;
+      memberName = '';
+      memberRole = '';
+      previewMode = false;
+      renderBody();
+    };
+  }
+
   function renderBody(){
+    renderSessionInfo();
     if (!unlocked) { renderPinGate(); return; }
     if (previewMode) {
       renderList(SAMPLE, true);
