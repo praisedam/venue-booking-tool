@@ -47,6 +47,7 @@
   #vc-root .vc-status-pill.finance_declined { background: #EEE; color: #888; }
   #vc-root .vc-status-pill.approved { background: #F5E1DC; color: var(--brick); }
   #vc-root .vc-status-pill.rejected { background: #EEE; color: #888; }
+  #vc-root .vc-status-pill.cancelled { background: #EAE0D5; color: #6B5D4A; }
   #vc-root .vc-b-actions { display: flex; gap: 6px; flex-wrap: wrap; width: 100%; }
   #vc-root .vc-b-actions button { border: 1px solid var(--line); background: var(--paper); border-radius: 6px; padding: 9px 12px; font-size: 12px; cursor: pointer; font-weight: 600; font-family: var(--font-body); min-height: 36px; }
   #vc-root .vc-b-actions button.approve:hover { border-color: var(--brick); color: var(--brick); }
@@ -78,8 +79,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 (function(){
-  // Change this to whatever PIN your committee agrees on
-  const COMMITTEE_PIN = "2468";
   // Change this to match your estate name if you like
   const COMMITTEE_LABEL = "Lagos Homs Ilupeju Scheme";
   // Same Supabase project as index.html
@@ -87,11 +86,12 @@
   const SUPABASE_KEY = "sb_publishable_dGMPC9QZ2zEpLK0f6WzU8Q_-Hn3ikYG";
   // WhatsApp numbers to notify Welfare once Finance approves payment
   const WELFARE_CONTACTS = [
+    { name: "Praise", number: "2348094661043" },
     { name: "Idongesit", number: "2348032008517" },
-    { name: "Praise", number: "2348094661043" }
+    { name: "Jumoke", number: "2347082991479" }
   ];
   // WhatsApp number of the General Secretary, notified after Welfare's final approval
-  const GENERAL_SECRETARY = { name: "General Secretary", number: "2348138372727" };
+  const GENERAL_SECRETARY = { name: "Oluchi (General Secretary)", number: "2348138372727" };
 
   const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
@@ -103,7 +103,8 @@
       submittedAt: r.submitted_at, policyAgreedAt: r.policy_agreed_at,
       actionBy: r.action_by, actionAt: r.action_at,
       financeActionBy: r.finance_action_by, financeActionAt: r.finance_action_at,
-      declineReason: r.decline_reason
+      declineReason: r.decline_reason,
+      cancelledBy: r.cancelled_by, cancelledAt: r.cancelled_at, cancelReason: r.cancel_reason
     };
   }
 
@@ -113,12 +114,14 @@
   let bookingsCache = {};
   let previewMode = false;
   let memberName = '';
+  let memberRole = '';
 
   const SAMPLE = [
     { date: '2026-07-19', name: 'Ifeoma Chukwu', phone: '0803 221 5590', email: 'ifeoma.c@email.com', eventType: 'Birthday party', notes: 'About 40 guests, need it from 12pm–6pm', status: 'pending', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')] },
     { date: '2026-07-22', name: 'Wale Adisa', phone: '0701 445 2290', email: '', eventType: 'Meeting / seminar', notes: '', status: 'awaiting_welfare', paymentImages: [samplePlaceholder('Venue')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-14T09:10:00' },
     { date: '2026-07-26', name: 'Tunde Bakare', phone: '0705 118 3342', email: '', eventType: 'Naming ceremony', notes: '', status: 'approved', paymentImages: [samplePlaceholder('Venue'), samplePlaceholder('Power')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-13T09:00:00', actionBy: 'Praise', actionAt: '2026-07-13T10:22:00' },
     { date: '2026-08-02', name: 'Grace Effiong', phone: '0812 940 7761', email: 'grace.effiong@email.com', eventType: 'Meeting / seminar', notes: 'Church group, small setup', status: 'finance_declined', paymentImages: [samplePlaceholder('Venue')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-14T16:05:00', declineReason: 'Payment amount does not match the booking fee' },
+    { date: '2026-08-09', name: 'Samuel Okonkwo', phone: '0806 552 1190', email: '', eventType: 'Birthday party', notes: '', status: 'cancelled', paymentImages: [samplePlaceholder('Venue')], financeActionBy: 'Bimpe (Finance)', financeActionAt: '2026-07-10T09:00:00', actionBy: 'Praise', actionAt: '2026-07-10T10:00:00', cancelledBy: 'Tunde (Chairman)', cancelledAt: '2026-07-16T14:20:00', cancelReason: 'Resident requested cancellation' },
   ];
 
   function samplePlaceholder(text){
@@ -144,20 +147,36 @@
   function renderPinGate(){
     body.innerHTML = `
       <div class="vc-card vc-pin-box">
-        <label>Your name</label>
-        <input type="text" id="vc-name-input" placeholder="e.g. Ngozi" style="text-align:left;letter-spacing:normal;font-size:14px;margin-bottom:14px;">
-        <label>Committee PIN</label>
+        <label>Your PIN</label>
         <input type="text" id="vc-pin-input" maxlength="6" placeholder="••••">
         <button class="vc-submit" id="vc-pin-submit">Unlock</button>
         <div id="vc-pin-msg"></div>
       </div>
     `;
-    document.getElementById('vc-pin-submit').onclick = () => {
-      const name = document.getElementById('vc-name-input').value.trim();
-      const val = document.getElementById('vc-pin-input').value.trim();
-      if (!name) { document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Please enter your name first.</div>`; return; }
-      if (val === COMMITTEE_PIN) { unlocked = true; memberName = name; renderBody(); }
-      else document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Incorrect PIN.</div>`;
+    document.getElementById('vc-pin-submit').onclick = async () => {
+      const val = document.getElementById('vc-pin-input').value.trim().toUpperCase();
+      const btn = document.getElementById('vc-pin-submit');
+      if (!val) { document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Please enter your PIN.</div>`; return; }
+      btn.disabled = true;
+      btn.textContent = 'Checking...';
+      try {
+        const { data, error } = await supabase.from('committee_members').select('*').eq('pin', val).single();
+        if (error || !data) {
+          document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">PIN not recognized.</div>`;
+          btn.disabled = false;
+          btn.textContent = 'Unlock';
+          return;
+        }
+        unlocked = true;
+        memberName = data.name;
+        memberRole = data.role;
+        renderBody();
+      } catch(e) {
+        console.error(e);
+        document.getElementById('vc-pin-msg').innerHTML = `<div class="vc-msg err">Something went wrong checking your PIN. Try again.</div>`;
+        btn.disabled = false;
+        btn.textContent = 'Unlock';
+      }
     };
     document.getElementById('vc-pin-input').onkeydown = (e) => { if (e.key === 'Enter') document.getElementById('vc-pin-submit').click(); };
   }
@@ -182,7 +201,8 @@
         awaiting_welfare: 'Awaiting Welfare',
         finance_declined: 'Declined by Finance',
         approved: 'Approved',
-        rejected: 'Declined by Welfare'
+        rejected: 'Declined by Welfare',
+        cancelled: 'Cancelled'
       };
 
       let actionsHtml = '';
@@ -197,6 +217,9 @@
           <button data-date="${b.date}" data-action="rejected" data-stage="welfare" ${isPreview?'disabled':''}>Reject (Welfare)</button>
         `;
       }
+      if (b.status !== 'cancelled') {
+        actionsHtml += `<button data-date="${b.date}" data-action="cancelled" data-stage="cancel" ${isPreview?'disabled':''}>Cancel booking</button>`;
+      }
       actionsHtml += `<button data-date="${b.date}" data-action="delete" ${isPreview?'disabled':''}>Delete</button>`;
 
       let notifyHtml = '';
@@ -209,6 +232,8 @@
           + (b.phone ? `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been approved. See you then!')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Send approval to resident →</a>` : '');
       } else if (b.status === 'rejected' && b.phone) {
         notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' was not approved. Reason: '+(b.declineReason||'Not specified')+'.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of decline →</a>`;
+      } else if (b.status === 'cancelled' && b.phone) {
+        notifyHtml = `<a href="https://wa.me/${b.phone.replace(/[^0-9]/g,'')}?text=${encodeURIComponent('Hi '+b.name+', your venue booking for '+b.date+' has been cancelled.'+(b.cancelReason ? ' Reason: '+b.cancelReason : '')+' Please contact us if you have questions.')}" target="_blank" rel="noopener" style="display:inline-block;margin-top:6px;font-size:11px;font-weight:600;color:#25D366;text-decoration:none;">Notify resident of cancellation →</a>`;
       }
 
       return `
@@ -224,6 +249,7 @@
           ${b.declineReason ? `<div class="vc-b-sub" style="margin-top:4px;">Reason: ${escapeHtml(b.declineReason)}</div>` : ''}
           ${b.financeActionBy ? `<div class="vc-b-sub" style="margin-top:4px;">Payment ${b.status === 'finance_declined' ? 'declined' : 'confirmed'} by ${escapeHtml(b.financeActionBy)} · ${new Date(b.financeActionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
           ${b.actionBy ? `<div class="vc-b-sub">${b.status === 'approved' ? 'Approved' : 'Rejected'} by ${escapeHtml(b.actionBy)} · ${new Date(b.actionAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}</div>` : ''}
+          ${b.cancelledBy ? `<div class="vc-b-sub">Cancelled by ${escapeHtml(b.cancelledBy)} · ${new Date(b.cancelledAt).toLocaleString('en-GB',{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'})}${b.cancelReason ? ' · Reason: ' + escapeHtml(b.cancelReason) : ''}</div>` : ''}
           ${notifyHtml}
         </div>
         <div class="vc-b-actions">
@@ -248,13 +274,16 @@
         btn.onclick = async () => {
           const date = btn.dataset.date;
           const action = btn.dataset.action;
-          const stage = btn.dataset.stage; // 'finance', 'welfare', or undefined for delete
+          const stage = btn.dataset.stage; // 'finance', 'welfare', 'cancel', or undefined for delete
           const expectedStatus = bookingsCache[date] ? bookingsCache[date].status : null;
 
           let reason = null;
           if (action === 'finance_declined' || action === 'rejected') {
             reason = prompt('Please give a short reason (this will be shared with the resident):');
             if (reason === null) return; // cancelled
+          }
+          if (action === 'cancelled') {
+            reason = prompt('Reason for cancelling (optional, will be shared with the resident):') || '';
           }
 
           btn.disabled = true;
@@ -272,19 +301,24 @@
             const live = liveRow ? fromRow(liveRow) : null;
             if (!live) { renderBody(); return; }
             if (live.status !== expectedStatus) {
-              alert(`This booking was already updated by ${live.actionBy || live.financeActionBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
+              alert(`This booking was already updated by ${live.actionBy || live.financeActionBy || live.cancelledBy || 'someone else'} in the meantime (now "${live.status}"). Refreshing the list.`);
               renderBody();
               return;
             }
 
             const update = { status: action };
-            if (reason) update.decline_reason = reason;
             if (stage === 'finance') {
+              update.decline_reason = reason;
               update.finance_action_by = memberName;
               update.finance_action_at = new Date().toISOString();
             } else if (stage === 'welfare') {
+              update.decline_reason = reason;
               update.action_by = memberName;
               update.action_at = new Date().toISOString();
+            } else if (stage === 'cancel') {
+              update.cancel_reason = reason;
+              update.cancelled_by = memberName;
+              update.cancelled_at = new Date().toISOString();
             }
 
             const { error: updErr } = await supabase.from('bookings').update(update).eq('date', date);
