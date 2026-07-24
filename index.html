@@ -70,7 +70,7 @@
   #vb-root .vb-submit:disabled { background: #C7BFA9; cursor: not-allowed; }
   #vb-root .vb-msg { font-size: 13px; margin-top: 10px; padding: 10px 12px; border-radius: 8px; }
   #vb-root .vb-msg.ok { background: #EAF0E3; color: var(--moss-deep); }
-  #vb-root .vb-msg.warn { background: #FBEED4; color: #8A6113; font-weight: 600; }
+  #vb-root .vb-msg.warn { background: #FBEED4; color: #8A6113; font-weight: 700; border: 2px solid #C08A28; font-size: 14px; }
   #vb-root .vb-msg.err { background: #F5E4DE; color: var(--brick); }
 </style>
 </head>
@@ -379,7 +379,7 @@
 
       document.getElementById('vb-form-msg').innerHTML = `
         <div class="vb-msg ok">Booking submitted successfully.</div>
-        <div class="vb-msg warn">Important: your booking isn't complete until you notify Finance below — please tap the button(s) now so they know to check your payment.</div>
+        <div class="vb-msg warn">⚠️ IMPORTANT: Your booking will NOT be reviewed until you click the button(s) below to notify Finance. Please do this now.</div>
         ${waButtons}
       `;
       btn.style.display = 'none';

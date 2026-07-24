@@ -227,8 +227,9 @@
         cancelled: 'Cancelled'
       };
 
-      const canFinance = memberRole === 'finance' || memberRole === 'chairman';
-      const canWelfare = memberRole === 'welfare' || memberRole === 'chairman';
+      const roleNormalized = (memberRole || '').trim().toLowerCase();
+      const canFinance = roleNormalized === 'finance' || roleNormalized === 'chairman';
+      const canWelfare = roleNormalized === 'welfare' || roleNormalized === 'chairman';
 
       let actionsHtml = '';
       if (b.status === 'pending') {
